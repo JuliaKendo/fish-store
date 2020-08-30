@@ -45,7 +45,19 @@ def start(bot, update, motlin_token):
     keyboard = fish_store_lib.get_tg_keyboard(motlin_token)
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(text='Please choise:', reply_markup=reply_markup)
-    return "BUTTON"
+    return 'HANDLE_MENU'
+
+
+def handle_menu(bot, update, motlin_token):
+    query = update.callback_query
+    product_caption, product_image = fish_store_lib.get_product_info(motlin_token, query.data)
+    bot.send_photo(chat_id=query.message.chat_id,
+                   photo=product_image,
+                   caption=product_caption)
+    bot.delete_message(chat_id=query.message.chat_id,
+                       message_id=query.message.message_id)
+
+    return 'START'
 
 
 def button(bot, update, motlin_token):

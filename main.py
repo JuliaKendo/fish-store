@@ -22,6 +22,7 @@ def main():
 
     states_functions = {
         'START': tg_bot.start,
+        'HANDLE_MENU': tg_bot.handle_menu,
         'BUTTON': tg_bot.button
     }
 
