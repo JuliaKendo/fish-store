@@ -23,7 +23,8 @@ def main():
     states_functions = {
         'START': tg_bot.start,
         'HANDLE_MENU': tg_bot.handle_menu,
-        'HANDLE_DESCRIPTION': tg_bot.handle_description
+        'HANDLE_DESCRIPTION': tg_bot.handle_description,
+        'HANDLE_CART': tg_bot.handle_cart
     }
 
     bot = tg_bot.TgDialogBot(
