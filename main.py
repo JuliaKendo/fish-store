@@ -1,24 +1,10 @@
 import os
-import redis
 import tg_bot
 from dotenv import load_dotenv
-from fish_store_lib import get_moltin_access_token
 
 
 def main():
     load_dotenv()
-
-    moltin_token = get_moltin_access_token(
-        client_secret=os.getenv('MOLTIN_CLIENT_SECRET'),
-        client_id=os.getenv('MOLTIN_CLIENT_ID')
-    )
-
-    redis_conn = redis.Redis(
-        host=os.getenv('REDIS_HOST'),
-        port=os.getenv('REDIS_PORT'),
-        db=0, password=os.getenv('REDIS_PASSWORD')
-    )
-    redis_conn.flushdb()
 
     states_functions = {
         'START': tg_bot.start,
@@ -28,11 +14,18 @@ def main():
         'WAITING_EMAIL': tg_bot.waiting_email
     }
 
+    connections_params = {
+        'REDIS_HOST': os.getenv('REDIS_HOST'),
+        'REDIS_PORT': os.getenv('REDIS_PORT'),
+        'REDIS_PASSWORD': os.getenv('REDIS_PASSWORD'),
+        'MOLTIN_CLIENT_ID': os.getenv('MOLTIN_CLIENT_ID'),
+        'MOLTIN_CLIENT_SECRET': os.getenv('MOLTIN_CLIENT_SECRET')
+    }
+
     bot = tg_bot.TgDialogBot(
         os.getenv('TG_ACCESS_TOKEN'),
-        moltin_token,
-        redis_conn,
-        states_functions
+        states_functions,
+        connections_params
     )
     bot.start()
 

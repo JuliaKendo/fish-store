@@ -12,7 +12,8 @@ def get_moltin_access_token(client_secret, client_id):
 
     response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
     response.raise_for_status()
-    return response.json()['access_token']
+    moltin_token = response.json()
+    return moltin_token['access_token'], moltin_token['expires']
 
 
 def execute_get_request(url, headers={}, data={}):

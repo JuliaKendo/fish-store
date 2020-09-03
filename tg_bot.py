@@ -1,4 +1,7 @@
+import redis
+from datetime import datetime
 from telegram.ext import Filters, Updater
+from fish_store_lib import get_moltin_access_token
 from fish_store_lib import add_new_customer, get_customer_id
 from fish_store_lib import delete_from_cart
 from tg_bot_events import confirm_email, finish_order
@@ -9,19 +12,33 @@ from telegram.ext import CallbackQueryHandler, MessageHandler, CommandHandler
 
 class TgDialogBot(object):
 
-    def __init__(self, tg_token, motlin_token, redis_db, states_functions):
+    def __init__(self, tg_token, states_functions, connections_params):
         self.updater = Updater(token=tg_token)
         self.updater.dispatcher.add_handler(CallbackQueryHandler(self.handle_users_reply))
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text, self.handle_users_reply))
         self.updater.dispatcher.add_handler(CommandHandler('start', self.handle_users_reply))
-        self.redis_db = redis_db
-        self.motlin_token = motlin_token
         self.states_functions = states_functions
+        self.connections_params = connections_params
+        self.redis_db, self.motlin_token, self.token_expires = None, None, 0
 
     def start(self):
+        self.redis_db = redis.Redis(
+            host=self.connections_params['REDIS_HOST'],
+            port=self.connections_params['REDIS_PORT'],
+            db=0, password=self.connections_params['REDIS_PASSWORD']
+        )
         self.updater.start_polling()
 
+    def update_motlin_token(self):
+        if self.token_expires < datetime.now().timestamp():
+            self.motlin_token, self.token_expires = get_moltin_access_token(
+                client_secret=self.connections_params['MOLTIN_CLIENT_SECRET'],
+                client_id=self.connections_params['MOLTIN_CLIENT_ID']
+            )
+
     def handle_users_reply(self, bot, update):
+
+        self.update_motlin_token()
 
         if update.message:
             user_reply = update.message.text
