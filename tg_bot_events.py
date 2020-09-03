@@ -23,10 +23,12 @@ def show_product_card(bot, chat_id, motlin_token, redis_db, product_id, delete_m
     return state
 
 
-def add_product_to_cart(chat_id, motlin_token, redis_db, product_quantity):
+def add_product_to_cart(chat_id, motlin_token, redis_db, query):
     chosen_product = redis_db.get(f'{chat_id}_chosen_product').decode("utf-8")
+    product_quantity = query.data
     if product_quantity:
         put_into_cart(motlin_token, chat_id, chosen_product, int(product_quantity))
+        query.answer("Товар добавлен в корзину")
     return 'HANDLE_DESCRIPTION'
 
 

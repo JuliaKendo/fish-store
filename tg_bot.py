@@ -87,7 +87,7 @@ def handle_description(bot, update, **kwargs):
     elif query.data == str(chat_id):
         return show_products_in_cart(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
     else:
-        return add_product_to_cart(chat_id, kwargs['motlin_token'], kwargs['redis_db'], query.data)
+        return add_product_to_cart(chat_id, kwargs['motlin_token'], kwargs['redis_db'], query)
 
 
 def handle_cart(bot, update, **kwargs):
