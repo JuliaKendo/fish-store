@@ -1,10 +1,33 @@
 import os
 import tg_bot
+import logging
+import logger_tools
 from dotenv import load_dotenv
+
+logger = logging.getLogger('fish_store_bot')
+
+
+def launch_fish_store_bot(states_functions, connections_params):
+    try:
+        bot = tg_bot.TgDialogBot(
+            os.getenv('TG_ACCESS_TOKEN'),
+            states_functions,
+            connections_params
+        )
+        bot.start()
+    except Exception as error:
+        logger.exception(f'Ошибка бота: {error}')
+        launch_fish_store_bot(states_functions, connections_params)
 
 
 def main():
     load_dotenv()
+
+    logger_tools.initialize_logger(
+        logger,
+        os.getenv('TG_LOG_TOKEN'),
+        os.getenv('TG_CHAT_ID')
+    )
 
     states_functions = {
         'START': tg_bot.start,
@@ -22,12 +45,7 @@ def main():
         'MOLTIN_CLIENT_SECRET': os.getenv('MOLTIN_CLIENT_SECRET')
     }
 
-    bot = tg_bot.TgDialogBot(
-        os.getenv('TG_ACCESS_TOKEN'),
-        states_functions,
-        connections_params
-    )
-    bot.start()
+    launch_fish_store_bot(states_functions, connections_params)
 
 
 if __name__ == '__main__':

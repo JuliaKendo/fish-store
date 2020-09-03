@@ -1,4 +1,5 @@
 import redis
+import logging
 from datetime import datetime
 from telegram.ext import Filters, Updater
 from fish_store_lib import get_moltin_access_token
@@ -9,6 +10,8 @@ from tg_bot_events import show_store_menu, show_product_card
 from tg_bot_events import show_products_in_cart, add_product_to_cart
 from telegram.ext import CallbackQueryHandler, MessageHandler, CommandHandler
 
+logger = logging.getLogger('fish_store_bot')
+
 
 class TgDialogBot(object):
 
@@ -17,6 +20,7 @@ class TgDialogBot(object):
         self.updater.dispatcher.add_handler(CallbackQueryHandler(self.handle_users_reply))
         self.updater.dispatcher.add_handler(MessageHandler(Filters.text, self.handle_users_reply))
         self.updater.dispatcher.add_handler(CommandHandler('start', self.handle_users_reply))
+        self.updater.dispatcher.add_error_handler(self.error)
         self.states_functions = states_functions
         self.connections_params = connections_params
         self.redis_db, self.motlin_token, self.token_expires = None, None, 0
@@ -57,6 +61,9 @@ class TgDialogBot(object):
         state_handler = self.states_functions[user_state]
         next_state = state_handler(bot, update, motlin_token=self.motlin_token, redis_db=self.redis_db)
         self.redis_db.set(chat_id, next_state)
+
+    def error(self, bot, update, error):
+        logger.exception(f'Ошибка бота: {error}')
 
 
 def start(bot, update, **kwargs):
