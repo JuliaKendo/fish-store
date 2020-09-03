@@ -1,5 +1,7 @@
 from telegram.ext import Filters, Updater
-from fish_store_lib import delete_product_from_cart
+from fish_store_lib import add_new_customer, get_customer_id
+from fish_store_lib import delete_from_cart
+from tg_bot_events import confirm_email, finish_order
 from tg_bot_events import show_store_menu, show_product_card
 from tg_bot_events import show_products_in_cart, add_product_to_cart
 from telegram.ext import CallbackQueryHandler, MessageHandler, CommandHandler
@@ -56,10 +58,10 @@ def handle_menu(bot, update, **kwargs):
 def handle_description(bot, update, **kwargs):
     query = update.callback_query
     chat_id = query.message.chat_id
-    if query.data == str(chat_id):
-        return show_products_in_cart(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
-    elif query.data == 'HANDLE_MENU':
+    if query.data == 'HANDLE_MENU':
         return show_store_menu(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
+    elif query.data == str(chat_id):
+        return show_products_in_cart(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
     else:
         return add_product_to_cart(chat_id, kwargs['motlin_token'], kwargs['redis_db'], query.data)
 
@@ -69,6 +71,24 @@ def handle_cart(bot, update, **kwargs):
     chat_id = query.message.chat_id
     if query.data == 'HANDLE_MENU':
         return show_store_menu(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
+    elif query.data == str(chat_id):
+        bot.send_message(chat_id=chat_id, text='Пришлите, пожалуйста, Ваш email')
+        return 'WAITING_EMAIL'
     else:
-        delete_product_from_cart(kwargs['motlin_token'], chat_id, query.data)
+        delete_from_cart(kwargs['motlin_token'], chat_id, query.data)
         return show_products_in_cart(bot, chat_id, kwargs['motlin_token'], query.message.message_id)
+
+
+def waiting_email(bot, update, **kwargs):
+    query = update.callback_query
+    if query and query.data == 'HANDLE_MENU':
+        chat_id = query.message.chat_id
+        return finish_order(bot, query.message.chat_id, query.message.message_id)
+    elif query and query.data == 'WAITING_EMAIL':
+        bot.send_message(chat_id=chat_id, text='Пришлите, пожалуйста, Ваш email')
+        return query.data
+    elif update.message.text:
+        chat_id = update.message.chat_id
+        if not get_customer_id(kwargs['motlin_token'], update.message.text):
+            add_new_customer(kwargs['motlin_token'], chat_id, update.message.text)
+        return confirm_email(bot, chat_id, kwargs['motlin_token'], update.message.text)

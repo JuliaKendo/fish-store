@@ -24,7 +24,8 @@ def main():
         'START': tg_bot.start,
         'HANDLE_MENU': tg_bot.handle_menu,
         'HANDLE_DESCRIPTION': tg_bot.handle_description,
-        'HANDLE_CART': tg_bot.handle_cart
+        'HANDLE_CART': tg_bot.handle_cart,
+        'WAITING_EMAIL': tg_bot.waiting_email
     }
 
     bot = tg_bot.TgDialogBot(

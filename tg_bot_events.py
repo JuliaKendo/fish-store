@@ -38,3 +38,16 @@ def show_products_in_cart(bot, chat_id, motlin_token, delete_message_id=0):
     if delete_message_id:
         bot.delete_message(chat_id=chat_id, message_id=delete_message_id)
     return state
+
+
+def confirm_email(bot, chat_id, motlin_token, customer_email):
+    state = 'WAITING_EMAIL'
+    reply_markup = get_tg_keyboard(motlin_token, chat_id, state)
+    bot.send_message(chat_id=chat_id, text='Ваш еmail: %s' % customer_email, reply_markup=reply_markup)
+    return state
+
+
+def finish_order(bot, chat_id, delete_message_id=0):
+    bot.send_message(chat_id=chat_id, text='Благодарим за заказ. Менеждер свяжется с Вами в бижайшее время.')
+    bot.delete_message(chat_id=chat_id, message_id=delete_message_id)
+    return 'HANDLE_MENU'
