@@ -76,7 +76,13 @@ def handle_menu(bot, update, motlin_token):
         db_lib.RedisDb().set_value('current_page', get_current_page(query.data))
         return show_store_menu(bot, chat_id, motlin_token, query.message.message_id)
     else:
-        return show_product_card(bot, chat_id, motlin_token, query.data, query.message.message_id)
+        return show_product_card(
+            bot,
+            chat_id,
+            motlin_token,
+            query.data,
+            query.message.message_id
+        )
 
 
 def handle_description(bot, update, motlin_token):

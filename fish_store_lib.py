@@ -50,13 +50,13 @@ def get_product_info(access_token, product_id):
     url = f'https://api.moltin.com/v2/products/{product_id}'
     product_data = execute_get_request(url, headers={'Authorization': access_token})
     product_price = product_data['price'][0]
-    return '%s\n\n%s %s за kg\n%skg на складе\n\n%s' % (
+    return re.escape('*%s*\n\n%s %s за kg\n%skg на складе\n\n_%s_' % (
         product_data['name'],
         product_price['currency'],
         product_price['amount'],
         get_total_in_stock(access_token, product_id),
         product_data['description']
-    ), get_product_image(access_token, product_data)
+    )).replace('\\*', '*'), get_product_image(access_token, product_data)
 
 
 def put_into_cart(access_token, cart_id, prod_id, quantity=1):
@@ -80,7 +80,7 @@ def get_cart_items(access_token, cart_id):
 
 
 def get_cart_info(access_token, cart_id):
-    cart_info = ['%s\n%s\n%s per kg\n%skg in chart for %s' % (
+    cart_info = ['*%s*\n_%s_\n%s за kg\n%skg в корзине: %s' % (
         ordered_product['name'],
         ordered_product['description'],
         ordered_product['meta']['display_price']['with_tax']['unit']['formatted'],
@@ -89,7 +89,15 @@ def get_cart_info(access_token, cart_id):
     ) for ordered_product in
         get_cart_items(access_token, cart_id)]
     cart_info.append(get_cart_amount(access_token, cart_id))
-    return '\n\n'.join(cart_info)
+    return re.escape('\n\n'.join(cart_info)).replace('\\*', '*')
+
+
+def get_products_in_cart(access_token, cart_id):
+    products_in_cart = {
+        ordered_product['product_id']: ordered_product['quantity']
+        for ordered_product in get_cart_items(access_token, cart_id)
+    }
+    return products_in_cart
 
 
 def get_cart_amount(access_token, cart_id):
@@ -127,7 +135,14 @@ def get_current_page(page_identifier):
 def get_store_menu(access_token, chat_id):
     page = int(db_lib.RedisDb().get_value('current_page'))
     all_products, max_pages = get_all_products(access_token, page)
-    keyboard = [[InlineKeyboardButton(products['name'], callback_data=products['id'])] for products in all_products]
+    products_in_cart = get_products_in_cart(access_token, chat_id)
+    keyboard = [
+        [InlineKeyboardButton(
+            '%s %s' % (
+                products['name'], '({}kg)'.format(products_in_cart[products['id']]) if products_in_cart.get(products['id']) else ''
+            ), callback_data=products['id']
+        )] for products in all_products
+    ]
     if page > 0 and page < max_pages:
         keyboard.append([
             InlineKeyboardButton('<', callback_data='page%d' % (page - LIMIT_PAGE)),
