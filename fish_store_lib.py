@@ -1,6 +1,9 @@
 import re
+import db_lib
 import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+LIMIT_PAGE = 2
 
 
 def get_moltin_access_token(client_secret, client_id):
@@ -22,9 +25,12 @@ def execute_get_request(url, headers={}, data={}):
     return response.json()['data']
 
 
-def get_all_products(access_token):
-    url = 'https://api.moltin.com/v2/products'
-    return execute_get_request(url, headers={'Authorization': access_token})
+def get_all_products(access_token, page=0):
+    url = 'https://api.moltin.com/v2/products?page[limit]=%d&page[offset]=%d' % (LIMIT_PAGE, page)
+    response = requests.get(url, headers={'Authorization': access_token})
+    response.raise_for_status()
+    all_products = response.json()
+    return all_products['data'], all_products['meta']['page']['total']
 
 
 def get_total_in_stock(access_token, product_id):
@@ -113,9 +119,28 @@ def get_customer_id(access_token, email):
         return found_user[0]['id']
 
 
+def get_current_page(page_identifier):
+    page_number = re.findall(r'[0-9]+$', page_identifier)
+    return int(page_number[0]) if page_number else 0
+
+
 def get_store_menu(access_token, chat_id):
-    all_products = get_all_products(access_token)
+    page = int(db_lib.RedisDb().get_value('current_page'))
+    all_products, max_pages = get_all_products(access_token, page)
     keyboard = [[InlineKeyboardButton(products['name'], callback_data=products['id'])] for products in all_products]
+    if page > 0 and page < max_pages:
+        keyboard.append([
+            InlineKeyboardButton('<', callback_data='page%d' % (page - LIMIT_PAGE)),
+            InlineKeyboardButton('>', callback_data='page%d' % (page + LIMIT_PAGE))
+        ])
+    elif page == 0:
+        keyboard.append([
+            InlineKeyboardButton('>', callback_data='page%d' % (page + LIMIT_PAGE))
+        ])
+    elif page >= max_pages:
+        keyboard.append([
+            InlineKeyboardButton('<', callback_data='page%d' % (page - LIMIT_PAGE))
+        ])
     keyboard.append([InlineKeyboardButton('Корзина', callback_data=chat_id)])
     return keyboard
 

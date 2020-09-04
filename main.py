@@ -7,17 +7,17 @@ from dotenv import load_dotenv
 logger = logging.getLogger('fish_store_bot')
 
 
-def launch_fish_store_bot(states_functions, connections_params):
+def launch_fish_store_bot(states_functions, motlin_params):
     try:
         bot = tg_bot.TgDialogBot(
             os.getenv('TG_ACCESS_TOKEN'),
             states_functions,
-            connections_params
+            motlin_params
         )
         bot.start()
     except Exception as error:
         logger.exception(f'Ошибка бота: {error}')
-        launch_fish_store_bot(states_functions, connections_params)
+        launch_fish_store_bot(states_functions, motlin_params)
 
 
 def main():
@@ -37,15 +37,12 @@ def main():
         'WAITING_EMAIL': tg_bot.waiting_email
     }
 
-    connections_params = {
-        'REDIS_HOST': os.getenv('REDIS_HOST'),
-        'REDIS_PORT': os.getenv('REDIS_PORT'),
-        'REDIS_PASSWORD': os.getenv('REDIS_PASSWORD'),
+    motlin_params = {
         'MOLTIN_CLIENT_ID': os.getenv('MOLTIN_CLIENT_ID'),
         'MOLTIN_CLIENT_SECRET': os.getenv('MOLTIN_CLIENT_SECRET')
     }
 
-    launch_fish_store_bot(states_functions, connections_params)
+    launch_fish_store_bot(states_functions, motlin_params)
 
 
 if __name__ == '__main__':
