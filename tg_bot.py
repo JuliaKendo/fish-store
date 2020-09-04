@@ -2,6 +2,7 @@ import db_lib
 import logging
 from datetime import datetime
 from telegram.ext import Filters, Updater
+from validate_email import validate_email
 from fish_store_lib import get_current_page
 from fish_store_lib import get_moltin_access_token
 from fish_store_lib import add_new_customer, get_customer_id
@@ -28,6 +29,7 @@ class TgDialogBot(object):
         self.motlin_token, self.token_expires = None, 0
 
     def start(self):
+        self.redis_conn.set_value('current_page', 0)
         self.updater.start_polling()
 
     def update_motlin_token(self):
@@ -112,13 +114,14 @@ def handle_cart(bot, update, motlin_token):
 def waiting_email(bot, update, motlin_token):
     query = update.callback_query
     if query and query.data == 'HANDLE_MENU':
-        chat_id = query.message.chat_id
         return finish_order(bot, query.message.chat_id, query.message.message_id)
     elif query and query.data == 'WAITING_EMAIL':
-        bot.send_message(chat_id=chat_id, text='Пришлите, пожалуйста, Ваш email')
+        bot.send_message(chat_id=query.message.chat_id, text='Пришлите, пожалуйста, Ваш email')
         return query.data
-    elif update.message.text:
-        chat_id = update.message.chat_id
+    elif update.message.text and validate_email(update.message.text):
         if not get_customer_id(motlin_token, update.message.text):
-            add_new_customer(motlin_token, chat_id, update.message.text)
-        return confirm_email(bot, chat_id, motlin_token, update.message.text)
+            add_new_customer(motlin_token, update.message.text)
+        return confirm_email(bot, update.message.chat_id, motlin_token, update.message.text)
+    else:
+        bot.send_message(chat_id=update.message.chat_id, text='Вы ввели не корректный email. Поробуйте еще раз:')
+        return 'WAITING_EMAIL'
