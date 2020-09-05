@@ -1,8 +1,10 @@
 import re
 import db_lib
 import requests
+import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+logger = logging.getLogger('fish_store_bot')
 LIMIT_PRODS_PER_PAGE = 5
 
 
@@ -102,7 +104,9 @@ def get_cart_info(access_token, cart_id):
     ) for ordered_product in
         get_cart_items(access_token, cart_id)]
     cart_info.append(get_cart_amount(access_token, cart_id))
-    return re.escape('\n\n'.join(cart_info)).replace('\\*', '*')
+    text_of_cart = re.escape('\n\n'.join(cart_info)).replace('\\*', '*')
+    logger.info(f'Состояние бота: {text_of_cart}')
+    return text_of_cart
 
 
 def get_products_in_cart(access_token, cart_id):

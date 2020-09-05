@@ -57,6 +57,7 @@ class TgDialogBot(object):
         else:
             user_state = self.redis_conn.get_value(chat_id)
 
+        logger.info(f'Состояние бота: {user_state}')
         state_handler = self.states_functions[user_state]
         next_state = state_handler(bot, update, motlin_token=self.motlin_token)
         self.redis_conn.set_value(chat_id, next_state)
@@ -73,11 +74,14 @@ def handle_menu(bot, update, motlin_token):
     query = update.callback_query
     chat_id = query.message.chat_id
     if query.data == str(chat_id):
+        logger.info(f'Нажата кнопка: Корзина')
         return show_products_in_cart(bot, chat_id, motlin_token, query.message.message_id)
     elif 'page' in query.data:
+        logger.info(f'Нажата кнопка: {query.data}')
         db_lib.RedisDb().set_value('current_page', get_current_page(query.data))
         return show_store_menu(bot, chat_id, motlin_token, query.message.message_id)
     else:
+        logger.info(f'Нажата кнопка: Информация о товаре')
         return show_product_card(
             bot,
             chat_id,
