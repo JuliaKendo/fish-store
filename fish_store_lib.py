@@ -1,10 +1,8 @@
 import re
 import db_lib
 import requests
-import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-logger = logging.getLogger('fish_store_bot')
 LIMIT_PRODS_PER_PAGE = 5
 
 
@@ -61,13 +59,13 @@ def get_product_info(access_token, product_id):
         headers={'Authorization': access_token}
     )
     product_price = product_data['price'][0]
-    return re.escape('*%s*\n\n%s %s за kg\n%skg на складе\n\n_%s_' % (
+    return '<b>%s</b>\n\n%s %s за kg\n%skg на складе\n\n<i>%s</i>' % (
         product_data['name'],
         product_price['currency'],
         product_price['amount'],
         get_total_in_stock(access_token, product_id),
         product_data['description']
-    )).replace('\\*', '*'), get_product_image(access_token, product_data)
+    ), get_product_image(access_token, product_data)
 
 
 def put_into_cart(access_token, cart_id, prod_id, quantity=1):
@@ -95,7 +93,7 @@ def get_cart_items(access_token, cart_id):
 
 
 def get_cart_info(access_token, cart_id):
-    cart_info = ['*%s*\n_%s_\n%s за kg\n%skg в корзине: %s' % (
+    cart_info = ['<b>%s</b>\n<i>%s</i>\n%s за kg\n%skg в корзине: %s' % (
         ordered_product['name'],
         ordered_product['description'],
         ordered_product['meta']['display_price']['with_tax']['unit']['formatted'],
@@ -104,9 +102,7 @@ def get_cart_info(access_token, cart_id):
     ) for ordered_product in
         get_cart_items(access_token, cart_id)]
     cart_info.append(get_cart_amount(access_token, cart_id))
-    text_of_cart = re.escape('\n\n'.join(cart_info)).replace('\\*', '*')
-    logger.info(f'Состояние бота: {text_of_cart}')
-    return text_of_cart
+    return '\n\n'.join(cart_info)
 
 
 def get_products_in_cart(access_token, cart_id):

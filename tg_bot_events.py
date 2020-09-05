@@ -1,5 +1,4 @@
 import db_lib
-import telegram
 from fish_store_lib import get_tg_keyboard
 from fish_store_lib import get_product_info
 from fish_store_lib import put_into_cart, get_cart_info
@@ -24,7 +23,7 @@ def show_product_card(bot, chat_id, motlin_token, product_id, delete_message_id=
         photo=product_image,
         caption=product_caption,
         reply_markup=reply_markup,
-        parse_mode=telegram.ParseMode.MARKDOWN_V2
+        parse_mode='html'
     )
     if delete_message_id:
         bot.delete_message(chat_id=chat_id, message_id=delete_message_id)
@@ -48,7 +47,7 @@ def show_products_in_cart(bot, chat_id, motlin_token, delete_message_id=0):
         chat_id=chat_id,
         text=cart_info,
         reply_markup=reply_markup,
-        parse_mode=telegram.ParseMode.MARKDOWN_V2
+        parse_mode='html'
     )
     if delete_message_id:
         bot.delete_message(chat_id=chat_id, message_id=delete_message_id)
