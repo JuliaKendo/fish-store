@@ -1,9 +1,4 @@
-import re
-import db_lib
 import requests
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
-LIMIT_PRODS_PER_PAGE = 5
 
 
 def get_moltin_access_token(client_secret, client_id):
@@ -26,17 +21,18 @@ def execute_get_request(url, headers={}, data={}):
     return response.json()['data']
 
 
-def get_all_products(access_token, page=0):
+def get_products(access_token, page=0, limit_products_per_page=0):
     response = requests.get(
-        'https://api.moltin.com/v2/products?page[limit]=%d&page[offset]=%d' % (LIMIT_PRODS_PER_PAGE, page),
+        'https://api.moltin.com/v2/products?page[limit]=%s&page[offset]=%s' % (limit_products_per_page, page),
         headers={'Authorization': access_token}
     )
+
     response.raise_for_status()
-    all_products = response.json()
-    return all_products['data'], all_products['meta']['page']['total']
+    products = response.json()
+    return products['data'], products['meta']['page']['total']
 
 
-def get_total_in_stock(access_token, product_id):
+def get_quantity_product_in_stock(access_token, product_id):
     product_data = execute_get_request(
         f'https://api.moltin.com/v2/inventories/{product_id}',
         headers={'Authorization': access_token}
@@ -63,7 +59,7 @@ def get_product_info(access_token, product_id):
         product_data['name'],
         product_price['currency'],
         product_price['amount'],
-        get_total_in_stock(access_token, product_id),
+        get_quantity_product_in_stock(access_token, product_id),
         product_data['description']
     ), get_product_image(access_token, product_data)
 
@@ -105,14 +101,6 @@ def get_cart_info(access_token, cart_id):
     return '\n\n'.join(cart_info)
 
 
-def get_products_in_cart(access_token, cart_id):
-    products_in_cart = {
-        ordered_product['product_id']: ordered_product['quantity']
-        for ordered_product in get_cart_items(access_token, cart_id)
-    }
-    return products_in_cart
-
-
 def get_cart_amount(access_token, cart_id):
     cart_price = execute_get_request(
         f'https://api.moltin.com/v2/carts/{cart_id}',
@@ -139,83 +127,3 @@ def get_customer_id(access_token, email):
     )
     found_user = [user['id'] for user in found_users if user['email'] == email]
     return found_user[0] if found_user else None
-
-
-def get_current_page(page_identifier):
-    page_number = re.findall(r'[0-9]+$', page_identifier)
-    return int(page_number[0]) if page_number else 0
-
-
-def get_store_menu(access_token, chat_id):
-    page = int(db_lib.RedisDb().get_value('current_page'))
-    all_products, max_pages = get_all_products(access_token, page)
-    products_in_cart = get_products_in_cart(access_token, chat_id)
-    keyboard = [
-        [InlineKeyboardButton(
-            '%s %s' % (
-                products['name'], '({}kg)'.format(products_in_cart[products['id']]) if products_in_cart.get(products['id']) else ''
-            ), callback_data=products['id']
-        )] for products in all_products
-    ]
-    keyboard.append([InlineKeyboardButton('Корзина', callback_data=chat_id)])
-    if max_pages == 1:
-        return keyboard
-    if page > 0 and page < max_pages:
-        keyboard.append([
-            InlineKeyboardButton('<', callback_data='page%d' % (page - LIMIT_PRODS_PER_PAGE)),
-            InlineKeyboardButton('>', callback_data='page%d' % (page + LIMIT_PRODS_PER_PAGE))
-        ])
-    elif page == 0:
-        keyboard.append([
-            InlineKeyboardButton('>', callback_data='page%d' % (page + LIMIT_PRODS_PER_PAGE))
-        ])
-    elif page >= max_pages:
-        keyboard.append([
-            InlineKeyboardButton('<', callback_data='page%d' % (page - LIMIT_PRODS_PER_PAGE))
-        ])
-    return keyboard
-
-
-def get_product_card_menu(access_token, chat_id):
-    keyboard = [[
-        InlineKeyboardButton('1kg', callback_data=1),
-        InlineKeyboardButton('5kg', callback_data=5),
-        InlineKeyboardButton('10kg', callback_data=10)],
-        [InlineKeyboardButton('В меню', callback_data='HANDLE_MENU')]
-    ]
-    keyboard.append([InlineKeyboardButton('Корзина', callback_data=chat_id)])
-    return keyboard
-
-
-def get_cart_menu(access_token, chat_id):
-    cart_items = get_cart_items(access_token, chat_id)
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                'Убрать из корзины %s' % cart_item['name'],
-                callback_data=cart_item['id']
-            )
-        ] for cart_item in cart_items
-    ]
-    keyboard.append([InlineKeyboardButton('В меню', callback_data='HANDLE_MENU')])
-    keyboard.append([InlineKeyboardButton('Оплата', callback_data=chat_id)])
-    return keyboard
-
-
-def get_confirm_menu(access_token, chat_id):
-    keyboard = [
-        [InlineKeyboardButton('Верно', callback_data='HANDLE_MENU')],
-        [InlineKeyboardButton('Не верно', callback_data='WAITING_EMAIL')]
-    ]
-    return keyboard
-
-
-def get_tg_keyboard(access_token, chat_id, state):
-    menu_states_functions = {
-        'HANDLE_MENU': get_store_menu,
-        'HANDLE_DESCRIPTION': get_product_card_menu,
-        'HANDLE_CART': get_cart_menu,
-        'WAITING_EMAIL': get_confirm_menu
-    }
-    menu_state_function = menu_states_functions[state]
-    return InlineKeyboardMarkup(menu_state_function(access_token, chat_id))
