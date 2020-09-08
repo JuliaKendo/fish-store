@@ -93,13 +93,16 @@ def get_cart_items(access_token, cart_id):
 
 
 def get_cart_info(access_token, cart_id):
-    cart_info = ['<b>{}</b>\n<i>{}</i>\n{} за kg\n{}kg в корзине: {}'.format(
-        cart_item['name'],
-        cart_item['description'],
-        cart_item['meta']['display_price']['with_tax']['unit']['formatted'],
-        cart_item['quantity'],
-        cart_item['meta']['display_price']['with_tax']['value']['formatted']
-    ) for cart_item in get_cart_items(access_token, cart_id)]
+    cart_info = []
+    for cart_item in get_cart_items(access_token, cart_id):
+        name, description, price, quantity, amount = (
+            cart_item['name'],
+            cart_item['description'],
+            cart_item['meta']['display_price']['with_tax']['unit']['formatted'],
+            cart_item['quantity'],
+            cart_item['meta']['display_price']['with_tax']['value']['formatted']
+        )
+        cart_info.append(f'<b>{name}</b>\n<i>{description}</i>\n{price} за kg\n{quantity}kg в корзине: {amount}')
     cart_info.append(get_cart_amount(access_token, cart_id))
     return '\n\n'.join(cart_info)
 
