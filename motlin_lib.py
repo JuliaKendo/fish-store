@@ -54,14 +54,18 @@ def get_product_info(access_token, product_id):
         f'https://api.moltin.com/v2/products/{product_id}',
         headers={'Authorization': access_token}
     )
-    product_price = product_data['price'][0]
-    return '<b>%s</b>\n\n%s %s за kg\n%skg на складе\n\n<i>%s</i>' % (
+    product_image = get_product_image(access_token, product_data)
+    name, description, currency, amount, quantity = (
         product_data['name'],
-        product_price['currency'],
-        product_price['amount'],
-        get_quantity_product_in_stock(access_token, product_id),
-        product_data['description']
-    ), get_product_image(access_token, product_data)
+        product_data['description'],
+        product_data['price'][0]['currency'],
+        product_data['price'][0]['amount'],
+        get_quantity_product_in_stock(access_token, product_id)
+    )
+    return (
+        f'<b>{name}</b>\n\n{currency} {amount} за kg\n{quantity}kg на складе\n\n<i>{description}</i>',
+        product_image
+    )
 
 
 def put_into_cart(access_token, cart_id, prod_id, quantity=1):
@@ -89,14 +93,13 @@ def get_cart_items(access_token, cart_id):
 
 
 def get_cart_info(access_token, cart_id):
-    cart_info = ['<b>%s</b>\n<i>%s</i>\n%s за kg\n%skg в корзине: %s' % (
-        ordered_product['name'],
-        ordered_product['description'],
-        ordered_product['meta']['display_price']['with_tax']['unit']['formatted'],
-        ordered_product['quantity'],
-        ordered_product['meta']['display_price']['with_tax']['value']['formatted']
-    ) for ordered_product in
-        get_cart_items(access_token, cart_id)]
+    cart_info = ['<b>{}</b>\n<i>{}</i>\n{} за kg\n{}kg в корзине: {}'.format(
+        cart_item['name'],
+        cart_item['description'],
+        cart_item['meta']['display_price']['with_tax']['unit']['formatted'],
+        cart_item['quantity'],
+        cart_item['meta']['display_price']['with_tax']['value']['formatted']
+    ) for cart_item in get_cart_items(access_token, cart_id)]
     cart_info.append(get_cart_amount(access_token, cart_id))
     return '\n\n'.join(cart_info)
 

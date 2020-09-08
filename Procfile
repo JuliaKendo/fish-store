@@ -1,1 +1,1 @@
-store-bot: python3 main.py
+store-bot: python3 tg_bot.py
